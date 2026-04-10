@@ -22,6 +22,7 @@ export default function LoginPage() {
       if (user.role === "CLIENT") router.push("/client");
       else if (user.role === "VENDOR") router.push("/vendor");
       else if (user.role === "ADMIN") router.push("/admin");
+      else if (user.role === "DELIVERY") router.push("/delivery");
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل تسجيل الدخول");
     } finally {

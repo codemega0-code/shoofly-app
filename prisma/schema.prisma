@@ -12,6 +12,7 @@ enum UserRole {
   CLIENT
   VENDOR
   ADMIN
+  DELIVERY
 }
 
 enum RequestStatus {
@@ -85,13 +86,14 @@ model User {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  clientRequests   Request[]
+  clientRequests   Request[]          @relation("ClientRequests")
   vendorBids       Bid[]
   vendorCategories VendorCategory[]
   transactions     Transaction[]
   notifications    Notification[]
   vendorWithdrawals WithdrawalRequest[] @relation("VendorWithdrawals")
   adminReviewedWithdrawals WithdrawalRequest[] @relation("AdminWithdrawalReviews")
+  assignedDeliveries Request[] @relation("DeliveryAgent")
 
   @@index([email])
   @@index([role])
@@ -135,11 +137,13 @@ model Request {
   notes            String?
   status           RequestStatus      @default(PENDING_ADMIN_REVISION)
   selectedBidId    Int?               @unique
-  qrCode           String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  qrCode                   String?
+  assignedDeliveryAgentId  Int?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
 
-  client           User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client           User               @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  deliveryAgent    User?              @relation("DeliveryAgent", fields: [assignedDeliveryAgentId], references: [id], onDelete: SetNull)
   category         Category           @relation(fields: [categoryId], references: [id])
   images           RequestImage[]
   bids             Bid[]
@@ -266,9 +270,11 @@ model WithdrawalRequest {
 }
 
 model PlatformSetting {
-  id                   Int      @id @default(autoincrement())
-  commissionPercentage Decimal  @default(15) @db.Decimal(5, 2)
-  minVendorMatch       Int      @default(2)
-  maxBidHours          Int      @default(24)
-  updatedAt            DateTime @updatedAt
+  id                    Int      @id @default(autoincrement())
+  commissionPercent     Decimal  @default(15) @db.Decimal(5, 2)
+  minVendorMatchCount   Int      @default(3)
+  initialRadiusKm       Int      @default(5)
+  maxRadiusKm           Int      @default(50)
+  radiusExpansionStepKm Int      @default(5)
+  updatedAt             DateTime @updatedAt
 }

@@ -1,4 +1,4 @@
-export type UserRole = "CLIENT" | "VENDOR" | "ADMIN";
+export type UserRole = "CLIENT" | "VENDOR" | "ADMIN" | "DELIVERY";
 export type ApiMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export class ApiClientError extends Error {

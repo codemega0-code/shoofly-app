@@ -14,6 +14,7 @@ const ROLE_PREFIXES: Record<string, string> = {
   "/client": "CLIENT",
   "/vendor": "VENDOR",
   "/admin": "ADMIN",
+  "/delivery": "DELIVERY",
 };
 
 export function middleware(req: NextRequest) {
@@ -61,7 +62,9 @@ export function middleware(req: NextRequest) {
             ? "/client"
             : payload.role === "VENDOR"
               ? "/vendor"
-              : "/admin";
+              : payload.role === "DELIVERY"
+                ? "/delivery"
+                : "/admin";
         return NextResponse.redirect(new URL(redirectPath, req.url));
       }
       break;

@@ -11,7 +11,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<"CLIENT" | "VENDOR" | "ADMIN">("CLIENT");
+  const [role, setRole] = useState<"CLIENT" | "VENDOR" | "ADMIN" | "DELIVERY">(
+    "CLIENT",
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -125,6 +127,7 @@ export default function RegisterPage() {
             >
               <option value="CLIENT">عميل</option>
               <option value="VENDOR">تاجر / مورد</option>
+              <option value="DELIVERY">مندوب توصيل</option>
             </select>
           </div>
 

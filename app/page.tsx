@@ -28,7 +28,7 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <div className="mt-12 grid gap-5 md:grid-cols-3">
+      <div className="mt-12 grid gap-5 md:grid-cols-4">
         <Link
           href="/client"
           className="group rounded-2xl border border-amber-100 bg-white p-6 shadow-sm transition hover:border-amber-400 hover:shadow-md"
@@ -63,6 +63,18 @@ export default function HomePage() {
           <h2 className="text-xl font-bold text-stone-900">لوحة الإدارة</h2>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
             المراجعة، الإرسال، العروض، المستردات، السحوبات.
+          </p>
+        </Link>
+        <Link
+          href="/delivery"
+          className="group rounded-2xl border border-amber-100 bg-white p-6 shadow-sm transition hover:border-amber-400 hover:shadow-md"
+        >
+          <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-2xl group-hover:bg-amber-100">
+            🚚
+          </div>
+          <h2 className="text-xl font-bold text-stone-900">تطبيق التوصيل</h2>
+          <p className="mt-2 text-sm leading-relaxed text-stone-500">
+            المهام المتاحة، الاستلام، التسليم، تأكيد الوصول.
           </p>
         </Link>
       </div>

@@ -8,7 +8,11 @@ export type RequestStatus =
   | "CLOSED_CANCELLED"
   | "REJECTED";
 
-export type BidStatus = "PENDING" | "SELECTED" | "ACCEPTED_BY_CLIENT" | "REJECTED";
+export type BidStatus =
+  | "PENDING"
+  | "SELECTED"
+  | "ACCEPTED_BY_CLIENT"
+  | "REJECTED";
 export type WithdrawalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type ApiRequestSummary = {
@@ -64,7 +68,7 @@ export type ApiTransaction = {
   user?: {
     id: number;
     fullName: string;
-    role: "CLIENT" | "VENDOR" | "ADMIN";
+    role: "CLIENT" | "VENDOR" | "ADMIN" | "DELIVERY";
   };
   request?: {
     id: number;
@@ -108,7 +112,7 @@ export type ApiUserSummary = {
   fullName: string;
   email: string;
   phone: string;
-  role: "CLIENT" | "VENDOR" | "ADMIN";
+  role: "CLIENT" | "VENDOR" | "ADMIN" | "DELIVERY";
   isActive: boolean;
   walletBalance: number;
   createdAt: string;

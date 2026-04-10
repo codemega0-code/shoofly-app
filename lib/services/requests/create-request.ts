@@ -6,7 +6,17 @@ import { ImageInput } from '../media/attachment';
 export async function createRequest(clientId: number, data: CreateRequestInput & { images?: ImageInput[] }) {
   logger.info('request.created.started', { clientId, categoryId: data.categoryId });
 
-  
+  // 1. Enforce Sub-category selection
+  const chosenCategory = await prisma.category.findUnique({
+    where: { id: data.categoryId },
+    select: { parentId: true, name: true }
+  });
+
+  if (!chosenCategory) throw new Error('Category not found');
+  if (chosenCategory.parentId === null) {
+    throw new Error(`Please select a specific sub-category for "${chosenCategory.name}"`);
+  }
+
   return prisma.$transaction(async (tx) => {
     const request = await tx.request.create({
       data: {

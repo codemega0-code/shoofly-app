@@ -5637,3 +5637,6 @@
 {"ts":"2026-04-10T21:24:29.578Z","level":"info","event":"delivery.task.accept.completed","requestId":2040,"deliveryAgentId":4}
 {"ts":"2026-04-10T21:24:29.590Z","level":"info","event":"qr.confirm.settlement.started","requestId":2040}
 {"ts":"2026-04-10T21:24:29.589Z","level":"info","event":"delivery.agent.complete.completed","requestId":2040,"deliveryAgentId":4}
+{"ts":"2026-04-10T21:39:01.944Z","level":"info","event":"request.created.started","clientId":2,"categoryId":5}
+{"ts":"2026-04-10T21:39:01.948Z","level":"info","event":"request.created.started","clientId":2,"categoryId":6}
+{"ts":"2026-04-10T21:39:01.958Z","level":"info","event":"request.created.completed","requestId":2041,"clientId":2,"status":"PENDING_ADMIN_REVISION","imageCount":0}

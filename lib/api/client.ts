@@ -1,16 +1,8 @@
 export type UserRole = "CLIENT" | "VENDOR" | "ADMIN";
-
 export type ApiMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
-
-const ROLE_EMAILS: Record<UserRole, string> = {
-  CLIENT: "client1@shoofly.com",
-  VENDOR: "vendor1@shoofly.com",
-  ADMIN: "admin@shoofly.com",
-};
 
 export class ApiClientError extends Error {
   status: number;
-
   constructor(message: string, status: number) {
     super(message);
     this.name = "ApiClientError";
@@ -21,23 +13,25 @@ export class ApiClientError extends Error {
 export async function apiFetch<T>(
   path: string,
   role: UserRole,
-  options?: {
-    method?: ApiMethod;
-    body?: unknown;
-    cache?: RequestCache;
-  }
+  options?: { method?: ApiMethod; body?: unknown; cache?: RequestCache },
 ): Promise<T> {
+  // Build headers — cookies are sent automatically by the browser
+  // x-user-role is a dev hint for the fallback header auth
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
   const response = await fetch(path, {
     method: options?.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": ROLE_EMAILS[role],
-    },
+    headers,
     body: options?.body ? JSON.stringify(options.body) : undefined,
     cache: options?.cache ?? "no-store",
+    credentials: "include", // Send cookies
   });
 
-  const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+  const payload = await response
+    .json()
+    .catch(() => ({}) as Record<string, unknown>);
 
   if (!response.ok) {
     const message =

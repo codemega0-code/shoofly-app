@@ -1,12 +1,15 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
+
+
+
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
 
 enum UserRole {
   CLIENT
@@ -57,7 +60,9 @@ enum TransactionType {
   ADMIN_COMMISSION
   REFUND
   WITHDRAWAL
+  WALLET_TOPUP
 }
+
 
 enum NotificationType {
   NEW_REQUEST
@@ -72,7 +77,9 @@ enum NotificationType {
   WALLET_TOPUP
   WITHDRAWAL_APPROVED
   WITHDRAWAL_REJECTED
+  WITHDRAWAL_REQUESTED
 }
+
 
 model User {
   id               Int            @id @default(autoincrement())
@@ -83,6 +90,7 @@ model User {
   role             UserRole
   isActive         Boolean        @default(true)
   walletBalance    Decimal        @default(0) @db.Decimal(12, 2)
+  fcmToken         String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -94,6 +102,9 @@ model User {
   vendorWithdrawals WithdrawalRequest[] @relation("VendorWithdrawals")
   adminReviewedWithdrawals WithdrawalRequest[] @relation("AdminWithdrawalReviews")
   assignedDeliveries Request[] @relation("DeliveryAgent")
+  sentMessages      ChatMessage[] @relation("SentMessages")
+  receivedMessages  ChatMessage[] @relation("ReceivedMessages")
+
 
   @@index([email])
   @@index([role])
@@ -102,15 +113,22 @@ model User {
 
 model Category {
   id        Int            @id @default(autoincrement())
-  name      String         @unique
-  slug      String         @unique
-  createdAt DateTime       @default(now())
+  name          String         @unique
+  slug          String         @unique
+  parentId      Int?
+  createdAt     DateTime       @default(now())
+
+  parent        Category?      @relation("CategoryToSubcategory", fields: [parentId], references: [id])
+  subcategories Category[]     @relation("CategoryToSubcategory")
+
 
   requests  Request[]
   vendors   VendorCategory[]
 
   @@index([slug])
+  @@index([parentId])
 }
+
 
 model VendorCategory {
   id         Int      @id @default(autoincrement())
@@ -149,11 +167,16 @@ model Request {
   bids             Bid[]
   deliveryTracking DeliveryTracking[]
   transactions     Transaction[]
+  notifications    Notification[]
+
 
   @@index([clientId])
   @@index([categoryId])
   @@index([status])
+  @@index([assignedDeliveryAgentId])
+  @@index([createdAt])
 }
+
 
 model RequestImage {
   id        Int      @id @default(autoincrement())
@@ -189,7 +212,9 @@ model Bid {
   @@index([requestId])
   @@index([vendorId])
   @@index([status])
+  @@index([createdAt])
 }
+
 
 model BidImage {
   id        Int      @id @default(autoincrement())
@@ -236,19 +261,43 @@ model Transaction {
 }
 
 model Notification {
-  id        Int              @id @default(autoincrement())
-  userId    Int
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  id           Int              @id @default(autoincrement())
+  userId       Int
+  type         NotificationType
+  title        String
+  message      String
+  requestId    Int?
+  metadata     Json?
+  isRead       Boolean          @default(false)
+  createdAt    DateTime         @default(now())
 
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   Request?         @relation(fields: [requestId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([isRead])
+  @@index([createdAt])
 }
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String   @db.Text
+  requestId  Int?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+
+
 
 model WithdrawalRequest {
   id           Int              @id @default(autoincrement())
@@ -267,6 +316,7 @@ model WithdrawalRequest {
   @@index([vendorId])
   @@index([status])
   @@index([reviewedById])
+  @@index([createdAt])
 }
 
 model PlatformSetting {

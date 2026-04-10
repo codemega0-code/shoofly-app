@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-export async function listAdminUsers() {
+export async function listAdminUsers(limit = 20, offset = 0) {
   return prisma.user.findMany({
     select: {
       id: true,
@@ -13,5 +13,8 @@ export async function listAdminUsers() {
       createdAt: true,
     },
     orderBy: { id: 'asc' },
+    take: limit,
+    skip: offset,
   });
 }
+

@@ -17,19 +17,13 @@ export async function requestWithdrawal(vendorId: number, amount: number) {
       throw new Error('Only active vendors can request withdrawals');
     }
 
-    const pending = await tx.withdrawalRequest.aggregate({
-      where: { vendorId, status: 'PENDING' },
-      _sum: { amount: true },
-    });
-
     const wallet = toTwo(Number(vendor.walletBalance));
-    const pendingAmount = toTwo(Number(pending._sum.amount || 0));
-    const available = toTwo(wallet - pendingAmount);
     const requested = toTwo(amount);
 
-    if (requested > available) {
+    if (requested > wallet) {
       throw new Error('Requested withdrawal exceeds available balance');
     }
+
 
     const created = await tx.withdrawalRequest.create({
       data: {
@@ -38,6 +32,13 @@ export async function requestWithdrawal(vendorId: number, amount: number) {
         status: 'PENDING',
       },
     });
+
+    // CRITICAL: Deduct from wallet immediately (hold funds)
+    await tx.user.update({
+      where: { id: vendorId },
+      data: { walletBalance: { decrement: requested } }
+    });
+
 
     const admins = await tx.user.findMany({
       where: { role: 'ADMIN' },
@@ -48,8 +49,10 @@ export async function requestWithdrawal(vendorId: number, amount: number) {
       await tx.notification.createMany({
         data: admins.map((a) => ({
           userId: a.id,
-          type: 'WALLET_TOPUP',
+          type: 'WITHDRAWAL_REQUESTED',
           title: 'New Withdrawal Request',
+
+
           message: `Vendor #${vendorId} requested withdrawal of ${requested}.`,
         })),
       });
@@ -73,7 +76,8 @@ export async function requestWithdrawal(vendorId: number, amount: number) {
       vendorId: created.vendorId,
       amount: Number(created.amount),
       status: created.status,
-      availableBalance: available,
+      availableBalance: wallet - requested,
     };
+
   });
 }

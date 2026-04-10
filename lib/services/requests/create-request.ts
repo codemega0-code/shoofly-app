@@ -1,33 +1,55 @@
 import { prisma } from '@/lib/prisma';
 import { CreateRequestInput } from '@/lib/validations/request';
 import { logger } from '@/lib/utils/logger';
+import { ImageInput } from '../media/attachment';
 
-export async function createRequest(clientId: number, data: CreateRequestInput) {
+export async function createRequest(clientId: number, data: CreateRequestInput & { images?: ImageInput[] }) {
   logger.info('request.created.started', { clientId, categoryId: data.categoryId });
-  const request = await prisma.request.create({
-    data: {
+
+  
+  return prisma.$transaction(async (tx) => {
+    const request = await tx.request.create({
+      data: {
+        clientId,
+        title: data.title,
+        description: data.description,
+        categoryId: data.categoryId,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        deliveryPhone: data.deliveryPhone,
+        notes: data.notes || null,
+        status: 'PENDING_ADMIN_REVISION',
+      },
+    });
+
+    if (data.images && data.images.length > 0) {
+      await tx.requestImage.createMany({
+        data: data.images.map(img => ({
+          requestId: request.id,
+          filePath: img.filePath,
+          fileName: img.fileName,
+          mimeType: img.mimeType,
+          fileSize: img.fileSize,
+        }))
+      });
+    }
+
+    logger.info('request.created.completed', {
+      requestId: request.id,
       clientId,
-      title: data.title,
-      description: data.description,
-      categoryId: data.categoryId,
-      address: data.address,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      deliveryPhone: data.deliveryPhone,
-      notes: data.notes || null,
-      status: 'PENDING_ADMIN_REVISION',
-    },
-    include: {
-      category: true,
-      client: { select: { id: true, fullName: true, email: true } },
-    },
-  });
+      status: request.status,
+      imageCount: data.images?.length || 0
+    });
 
-  logger.info('request.created.completed', {
-    requestId: request.id,
-    clientId,
-    status: request.status,
+    return tx.request.findUnique({
+      where: { id: request.id },
+      include: {
+        category: true,
+        images: true,
+        client: { select: { id: true, fullName: true, email: true } },
+      }
+    });
   });
-
-  return request;
 }
+

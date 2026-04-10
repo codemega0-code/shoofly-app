@@ -65,6 +65,12 @@ export async function updateDeliveryStatus(params: {
       throw new Error('Only vendor owning accepted bid can update delivery');
     }
 
+    // Role-based status restrictions: Vendors can only set preparing or ready
+    if (status !== 'VENDOR_PREPARING' && status !== 'READY_FOR_PICKUP') {
+      throw new Error(`Vendors cannot update delivery to status: ${status}`);
+    }
+
+
     const lastStatus = (request.deliveryTracking[0]?.status || 'ORDER_PLACED') as DeliveryStep;
     if (!isValidForwardTransition(lastStatus, status)) {
       logger.warn('delivery.status_update.invalid_transition', {

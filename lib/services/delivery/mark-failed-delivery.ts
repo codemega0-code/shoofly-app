@@ -64,12 +64,29 @@ export async function markFailedDelivery(params: {
 
     await tx.notification.create({
       data: {
-      userId: request.clientId,
-      type: 'DELIVERY_FAILED',
-      title: 'Delivery Failed',
-      message: `Request #${requestId} delivery was marked as failed.`,
+        userId: request.clientId,
+        type: 'DELIVERY_FAILED',
+        title: 'Delivery Failed',
+        message: `Request #${requestId} delivery was marked as failed by vendor. Admin will review for refund.`,
       },
     });
+
+    const admins = await tx.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await tx.notification.createMany({
+        data: admins.map((a) => ({
+          userId: a.id,
+          type: 'DELIVERY_FAILED',
+          title: 'VENDOR FAILED DELIVERY - Refund Action Required',
+          message: `Vendor #${vendorId} marked Request #${requestId} as failed. Escrow funds need review.`,
+        })),
+      });
+    }
+
 
     logger.info('notification.created', {
       event: 'delivery.failed',

@@ -26,7 +26,40 @@ export async function reviewRequest(requestId: number, action: ReviewAction) {
     include: { category: true, client: true },
   });
 
+  if (action === 'approve') {
+    // Notify all vendors in this category
+    const vendors = await prisma.user.findMany({
+      where: {
+        role: 'VENDOR',
+        isActive: true,
+        vendorCategories: {
+          some: { categoryId: updated.categoryId },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (vendors.length > 0) {
+      await prisma.notification.createMany({
+        data: vendors.map((v: { id: number }) => ({
+          userId: v.id,
+
+          type: 'NEW_REQUEST',
+          title: 'New Bid Opportunity',
+          message: `A new request in ${updated.category.name} is open for bidding.`,
+        })),
+      });
+
+      logger.info('notification.created', {
+        event: 'request.opened',
+        requestId,
+        vendorCount: vendors.length,
+      });
+    }
+  }
+
   logger.info('request.review.completed', {
+
     requestId,
     action,
     newStatus: updated.status,

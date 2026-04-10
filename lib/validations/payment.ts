@@ -11,3 +11,11 @@ export const PayRequestBodySchema = z.object({
 
 export type PayRequestRouteParam = z.infer<typeof PayRequestRouteParamSchema>;
 export type PayRequestBody = z.infer<typeof PayRequestBodySchema>;
+ 
++export const DepositFundsSchema = z.object({
++  amount: z.coerce.number().positive(),
++});
++
++export type DepositFundsInput = z.infer<typeof DepositFundsSchema>;
++
+

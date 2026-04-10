@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma';
 
-export async function getRequestDetails(requestId: number) {
+import { UserRole } from '@/lib/validations/auth';
+
+export async function getRequestDetails(params: {
+  requestId: number;
+  userId: number;
+  userRole: UserRole;
+}) {
+  const { requestId, userId, userRole } = params;
+
   const request = await prisma.request.findUnique({
     where: { id: requestId },
     include: {
@@ -8,6 +16,12 @@ export async function getRequestDetails(requestId: number) {
       client: { select: { id: true, fullName: true, email: true } },
       images: true,
       bids: {
+        where:
+          userRole === 'VENDOR'
+            ? { vendorId: userId } // Vendors only see their own bid
+            : userRole === 'CLIENT'
+              ? {} // Clients see all bids forwarded to them
+              : {}, // Admins see all
         select: {
           id: true,
           vendorId: true,
@@ -15,7 +29,9 @@ export async function getRequestDetails(requestId: number) {
           netPrice: true,
           clientPrice: true,
           status: true,
+          images: true,
           vendor: { select: { id: true, fullName: true } },
+
         },
       },
     },
@@ -25,5 +41,11 @@ export async function getRequestDetails(requestId: number) {
     throw new Error('Request not found');
   }
 
+  // Final authorization check
+  if (userRole === 'CLIENT' && request.clientId !== userId) {
+    throw new Error('Forbidden');
+  }
+
   return request;
 }
+

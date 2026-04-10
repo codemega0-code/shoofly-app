@@ -1,4 +1,6 @@
-import { PrismaClient } from "./app/generated/prisma/client";
+import { PrismaClient } from "../app/generated/prisma";
+
+
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
@@ -12,12 +14,15 @@ const prisma = new PrismaClient({ adapter });
 
 async function test() {
   try {
-    console.log("Testing Prisma connection...");
-    const users = await prisma.user.findMany();
-    console.log(`Connection successful. Found ${users.length} users.`);
+    const users = await prisma.user.findMany({ select: { id: true, fullName: true, role: true } });
+    console.log(`\nFound ${users.length} users:`);
+
+    users.forEach(u => console.log(`- [#${u.id}] ${u.fullName} (${u.role})`));
 
     const categories = await prisma.category.findMany();
-    console.log(`Categories table accessible. Found ${categories.length} categories.`);
+    console.log(`\nFound ${categories.length} categories:`);
+    categories.forEach(c => console.log(`- [#${c.id}] ${c.name}`));
+
 
     console.log("\nSchema verification:");
     console.log("User model: working");

@@ -9,7 +9,7 @@ export async function failDeliveryAgent(params: {
   const { requestId, deliveryAgentId, reason } = params;
   logger.info("delivery.agent.fail.started", { requestId, deliveryAgentId });
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     const request = await tx.request.findUnique({
       where: { id: requestId },
       select: { assignedDeliveryAgentId: true, status: true, clientId: true },
@@ -38,9 +38,27 @@ export async function failDeliveryAgent(params: {
         userId: request.clientId,
         type: "DELIVERY_FAILED",
         title: "Delivery Failed",
-        message: `Delivery for request #${requestId} has failed. Admin will be in touch.`,
+        message: `Delivery for request #${requestId} has failed. Admin will review for refund.`,
       },
     });
+
+    const admins = await tx.user.findMany({
+      where: { role: "ADMIN" },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await tx.notification.createMany({
+        data: admins.map((a: { id: number }) => ({
+          userId: a.id,
+          type: "DELIVERY_FAILED",
+          title: "FAILED DELIVERY - Refund Action Required",
+          message: `Request #${requestId} failed delivery. Escrow funds need review.`,
+        })),
+      });
+    }
+
+
 
     logger.info("delivery.agent.fail.completed", {
       requestId,

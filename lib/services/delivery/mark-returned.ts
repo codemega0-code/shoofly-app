@@ -72,9 +72,26 @@ export async function markReturned(params: {
         userId: request.clientId,
         type: 'DELIVERY_FAILED',
         title: 'Order Returned',
-        message: `Request #${requestId} was marked as returned.`,
+        message: `Request #${requestId} was marked as returned. Admin will review for refund.`,
       },
     });
+
+    const admins = await tx.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await tx.notification.createMany({
+        data: admins.map((a: { id: number }) => ({
+          userId: a.id,
+          type: 'DELIVERY_FAILED',
+          title: 'ORDER RETURNED - Refund Action Required',
+          message: `Request #${requestId} was marked as returned. Escrow funds need review.`,
+        })),
+      });
+    }
+
 
     logger.info('notification.created', {
       event: 'delivery.returned',

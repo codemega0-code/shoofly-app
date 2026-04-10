@@ -28,9 +28,14 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser(req.headers);
     requireUser(user);
     requireRole(user, 'CLIENT');
-
-    const requests = await listClientRequests(user.id);
+ 
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(Number(searchParams.get('limit')) || 20, 100);
+    const offset = Math.max(Number(searchParams.get('offset')) || 0, 0);
+ 
+    const requests = await listClientRequests(user.id, limit, offset);
     return NextResponse.json(requests);
+
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

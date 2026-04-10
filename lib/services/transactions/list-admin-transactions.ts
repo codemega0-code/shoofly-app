@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-export async function listAdminTransactions() {
+export async function listAdminTransactions(limit = 50, offset = 0) {
   return prisma.transaction.findMany({
     include: {
       user: {
@@ -19,5 +19,8 @@ export async function listAdminTransactions() {
       },
     },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: limit,
+    skip: offset,
   });
 }
+

@@ -13,18 +13,15 @@ export async function GET(
 
     const parsedParams = RequestIdParamSchema.parse(await params);
     const id = parsedParams.id;
-    const request = await getRequestDetails(id);
-
-    // Authorization: client can see their own, admin can see all, vendor cannot see until bidding
-    if (user.role === 'CLIENT' && request.clientId !== user.id) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
-
+    const request = await getRequestDetails({
+      requestId: id,
+      userId: user.id,
+      userRole: user.role,
+    });
+ 
     return NextResponse.json(request);
   } catch (error: unknown) {
+
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: message },

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-export async function listClientRequests(clientId: number) {
+export async function listClientRequests(clientId: number, limit = 20, offset = 0) {
   const requests = await prisma.request.findMany({
     where: { clientId },
     include: {
@@ -9,7 +9,10 @@ export async function listClientRequests(clientId: number) {
       _count: { select: { bids: true } },
     },
     orderBy: { createdAt: 'desc' },
+    take: limit,
+    skip: offset,
   });
 
   return requests;
 }
+

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 
-export async function listUserTransactions(userId: number) {
+export async function listUserTransactions(userId: number, limit = 20, offset = 0) {
   return prisma.transaction.findMany({
     where: { userId },
     include: {
@@ -13,5 +13,8 @@ export async function listUserTransactions(userId: number) {
       },
     },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: limit,
+    skip: offset,
   });
 }
+

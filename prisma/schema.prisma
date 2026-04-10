@@ -1,293 +1,124 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
-
-// ============================================================================
-// ENUMS
-// ============================================================================
-
-enum UserRole {
-  CLIENT
-  VENDOR
-  ADMIN
-}
-
-enum RequestStatus {
-  PENDING_ADMIN_REVISION
-  OPEN_FOR_BIDDING
-  BIDS_RECEIVED
-  OFFERS_FORWARDED
-  ORDER_PAID_PENDING_DELIVERY
-  CLOSED_SUCCESS
-  CLOSED_CANCELLED
-  REJECTED
-}
-
-enum BidStatus {
-  PENDING
-  SELECTED
-  ACCEPTED_BY_CLIENT
-  REJECTED
-  WITHDRAWN
-}
-
-enum DeliveryStatus {
-  ORDER_PLACED
-  VENDOR_PREPARING
-  READY_FOR_PICKUP
-  OUT_FOR_DELIVERY
-  IN_TRANSIT
-  DELIVERED
-  FAILED_DELIVERY
-  RETURNED
-}
-
-enum WithdrawalStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum TransactionType {
-  ESCROW_DEPOSIT
-  VENDOR_PAYOUT
-  ADMIN_COMMISSION
-  REFUND
-  WITHDRAWAL
-}
-
-enum NotificationType {
-  NEW_REQUEST
-  NEW_BID
-  OFFER_RECEIVED
-  BID_ACCEPTED
-  DELIVERY_UPDATE
-  DELIVERY_FAILED
-  PAYMENT_RECEIVED
-  REFUND_ISSUED
-  REQUEST_DISPATCHED
-  WALLET_TOPUP
-  WITHDRAWAL_APPROVED
-  WITHDRAWAL_REJECTED
-}
-
-// ============================================================================
-// MODELS
-// ============================================================================
 
 model User {
-  id               Int            @id @default(autoincrement())
-  fullName         String
-  email            String         @unique
-  password         String
-  phone            String?
-  role             UserRole
-  isActive         Boolean        @default(true)
-  walletBalance    Decimal        @default(0) @db.Decimal(12, 2)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id             String     @id @default(cuid())
+  name           String
+  email          String     @unique
+  password       String
+  phone          String?
+  role           String     @default("CLIENT")
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  // Relations
-  clientRequests   Request[]
-  vendorBids       Bid[]
-  vendorCategories VendorCategory[]
-  transactions     Transaction[]
-  notifications    Notification[]
-  vendorWithdrawals WithdrawalRequest[] @relation("VendorWithdrawals")
-  adminReviewedWithdrawals WithdrawalRequest[] @relation("AdminWithdrawalReviews")
-
-  @@index([email])
-  @@index([role])
-  @@index([isActive])
-}
-
-model Category {
-  id        Int            @id @default(autoincrement())
-  name      String         @unique
-  slug      String         @unique
-  createdAt DateTime       @default(now())
-
-  // Relations
-  requests  Request[]
-  vendors   VendorCategory[]
-
-  @@index([slug])
-}
-
-model VendorCategory {
-  id         Int      @id @default(autoincrement())
-  vendorId   Int
-  categoryId Int
-  vendor     User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@unique([vendorId, categoryId])
-  @@index([vendorId])
-  @@index([categoryId])
+  requests       Request[]  @relation("ClientRequests")
+  bids           Bid[]      @relation("VendorBids")
+  deliveries     Delivery[] @relation("DeliveryTasks")
+  deposits       Deposit[]  @relation("ClientDeposits")
+  disputesRaised Dispute[]  @relation("DisputeRaiser")
 }
 
 model Request {
-  id               Int                @id @default(autoincrement())
-  clientId         Int
-  title            String
-  description      String
-  categoryId       Int
-  address          String
-  latitude         Decimal            @db.Decimal(10, 7)
-  longitude        Decimal            @db.Decimal(10, 7)
-  deliveryPhone    String
-  notes            String?
-  status           RequestStatus      @default(PENDING_ADMIN_REVISION)
-  selectedBidId    Int?               @unique
-  qrCode           String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id          String   @id @default(cuid())
+  clientId    String
+  title       String
+  description String
+  imageUrl    String?
+  location    String
+  phone       String
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relations
-  client           User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  category         Category           @relation(fields: [categoryId], references: [id])
-  images           RequestImage[]
-  bids             Bid[]
-  deliveryTracking DeliveryTracking[]
-  transactions     Transaction[]
-
-  @@index([clientId])
-  @@index([categoryId])
-  @@index([status])
-}
-
-model RequestImage {
-  id        Int      @id @default(autoincrement())
-  requestId Int
-  filePath  String
-  fileName  String
-  mimeType  String
-  fileSize  Int
-  createdAt DateTime @default(now())
-
-  // Relations
-  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@index([requestId])
+  client      User     @relation("ClientRequests", fields: [clientId], references: [id])
+  bids        Bid[]
+  order       Order?
 }
 
 model Bid {
-  id          Int       @id @default(autoincrement())
-  requestId   Int
-  vendorId    Int
-  description String
-  netPrice    Decimal   @db.Decimal(12, 2)
-  clientPrice Decimal   @db.Decimal(12, 2)
-  status      BidStatus @default(PENDING)
-  adminNote   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  requestId    String
+  vendorId     String
+  price        Float
+  deliveryTime String
+  notes        String?
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
 
-  // Relations
-  request     Request    @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  vendor      User       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  images      BidImage[]
-
-  @@unique([requestId, vendorId])
-  @@index([requestId])
-  @@index([vendorId])
-  @@index([status])
+  request      Request  @relation(fields: [requestId], references: [id])
+  vendor       User     @relation("VendorBids", fields: [vendorId], references: [id])
+  order        Order?
 }
 
-model BidImage {
-  id        Int      @id @default(autoincrement())
-  bidId     Int
-  filePath  String
-  fileName  String
-  mimeType  String
-  fileSize  Int
+model Order {
+  id              String   @id @default(cuid())
+  requestId       String   @unique
+  bidId           String   @unique
+  clientId        String
+  vendorId        String
+  totalPrice      Float
+  depositRequired Boolean  @default(false)
+  depositAmount   Float?
+  status          String   @default("CONFIRMED")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  request         Request  @relation(fields: [requestId], references: [id])
+  bid             Bid      @relation(fields: [bidId], references: [id])
+  deposit         Deposit?
+  delivery        Delivery?
+  dispute         Dispute?
+}
+
+model Deposit {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  clientId  String
+  amount    Float
+  method    String
+  proofUrl  String?
+  status    String   @default("PENDING")
+  adminNote String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relations
-  bid       Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
-
-  @@index([bidId])
+  order     Order    @relation(fields: [orderId], references: [id])
+  client    User     @relation("ClientDeposits", fields: [clientId], references: [id])
 }
 
-model DeliveryTracking {
-  id           Int              @id @default(autoincrement())
-  requestId    Int
-  status       DeliveryStatus
-  note         String?
-  locationText String?
-  createdAt    DateTime         @default(now())
+model Delivery {
+  id             String    @id @default(cuid())
+  orderId        String    @unique
+  deliveryUserId String?
+  status         String    @default("AVAILABLE")
+  failReason     String?
+  pickedUpAt     DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  // Relations
-  request      Request          @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@index([requestId])
-  @@index([status])
+  order          Order     @relation(fields: [orderId], references: [id])
+  deliveryUser   User?     @relation("DeliveryTasks", fields: [deliveryUserId], references: [id])
 }
 
-model Transaction {
-  id          Int             @id @default(autoincrement())
-  userId      Int
-  requestId   Int?
-  amount      Decimal         @db.Decimal(12, 2)
-  type        TransactionType
-  description String?
-  createdAt   DateTime        @default(now())
+model Dispute {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  raisedById String
+  reason     String
+  status     String   @default("OPEN")
+  resolution String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  // Relations
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  request     Request?        @relation(fields: [requestId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([type])
-}
-
-model Notification {
-  id        Int              @id @default(autoincrement())
-  userId    Int
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-
-  // Relations
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-}
-
-model WithdrawalRequest {
-  id           Int              @id @default(autoincrement())
-  vendorId     Int
-  amount       Decimal          @db.Decimal(12, 2)
-  status       WithdrawalStatus @default(PENDING)
-  reviewNote   String?
-  reviewedById Int?
-  reviewedAt   DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  vendor       User             @relation("VendorWithdrawals", fields: [vendorId], references: [id], onDelete: Cascade)
-  reviewedBy   User?            @relation("AdminWithdrawalReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@index([vendorId])
-  @@index([status])
-  @@index([reviewedById])
-}
-
-model PlatformSetting {
-  id                     Int      @id @default(autoincrement())
-  commissionPercent      Decimal  @default(15) @db.Decimal(5, 2)
-  minVendorMatchCount    Int      @default(3)
-  initialRadiusKm        Int      @default(5)
-  maxRadiusKm            Int      @default(50)
-  radiusExpansionStepKm  Int      @default(5)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id])
+  raisedBy   User     @relation("DisputeRaiser", fields: [raisedById], references: [id])
 }

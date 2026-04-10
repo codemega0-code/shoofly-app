@@ -104,6 +104,10 @@ model User {
   assignedDeliveries Request[] @relation("DeliveryAgent")
   sentMessages      ChatMessage[] @relation("SentMessages")
   receivedMessages  ChatMessage[] @relation("ReceivedMessages")
+  reviewsGiven      Review[]      @relation("ReviewsGiven")
+  reviewsReceived   Review[]      @relation("ReviewsReceived")
+  complaints        Complaint[]   @relation("UserComplaints")
+  resolvedComplaints Complaint[]  @relation("AdminResolvedComplaints")
 
 
   @@index([email])
@@ -168,6 +172,8 @@ model Request {
   deliveryTracking DeliveryTracking[]
   transactions     Transaction[]
   notifications    Notification[]
+  review           Review?
+  complaints       Complaint[]
 
 
   @@index([clientId])
@@ -327,4 +333,49 @@ model PlatformSetting {
   maxRadiusKm           Int      @default(50)
   radiusExpansionStepKm Int      @default(5)
   updatedAt             DateTime @updatedAt
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  requestId   Int      @unique
+  reviewerId  Int
+  reviewedId  Int
+  rating      Int      // 1 to 5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewed    User     @relation("ReviewsReceived", fields: [reviewedId], references: [id], onDelete: Cascade)
+
+  @@index([reviewedId])
+}
+
+model Complaint {
+  id          Int             @id @default(autoincrement())
+  requestId   Int
+  userId      Int
+  subject     String
+  description String
+  status      ComplaintStatus @default(OPEN)
+  resolution  String?
+  resolvedById Int?
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user        User     @relation("UserComplaints", fields: [userId], references: [id], onDelete: Cascade)
+  resolvedBy  User?    @relation("AdminResolvedComplaints", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([status])
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
 }

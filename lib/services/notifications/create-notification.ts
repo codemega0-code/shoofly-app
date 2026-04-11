@@ -1,4 +1,4 @@
-import { NotificationType } from '@/app/generated/prisma/enums';
+import { NotificationType } from '@/app/generated/prisma';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/utils/logger';
 

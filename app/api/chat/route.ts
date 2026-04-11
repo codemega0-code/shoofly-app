@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, requireUser } from '@/lib/auth';
 import { sendMessage } from '@/lib/services/chat/send-message';
 import { listMessages } from '@/lib/services/chat/list-messages';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
